@@ -156,6 +156,12 @@ as part of this repo**.
   forecast here is per problem code, region and week. Conditioning on the unit belongs in the next
   layer.
 
+## Credits
+
+Built by [kannanbalakrishnan576](https://github.com/kannanbalakrishnan576) with
+[Claude](https://www.anthropic.com/claude) (Anthropic) as co-author: data generator, forecasting
+and backtest scripts, the page, and this README.
+
 ## Licence
 
 Code: Apache-2.0. TimesFM 3.0 weights: Google's TimesFM non-commercial licence. They are not
