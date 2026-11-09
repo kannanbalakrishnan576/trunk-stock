@@ -156,6 +156,14 @@ as part of this repo**.
   forecast here is per problem code, region and week. Conditioning on the unit belongs in the next
   layer.
 
+## Sources
+
+- Google Research, [TimesFM 3: a zero-shot foundation model for multivariate forecasting](https://research.google/blog/timesfm-3-a-zero-shot-foundation-model-for-multivariate-forecasting). 31 August 2026.
+- Google Cloud, [TimesFM 3.0 in BigQuery with multivariate time-series forecasting](https://cloud.google.com/blog/products/data-analytics/bigquery-timesfm-3-0-with-multivariate-time-series-forecasting). 12 October 2026, preview.
+- [The `AI.FORECAST` function](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-ai-forecast). BigQuery reference.
+- [google-research/timesfm](https://github.com/google-research/timesfm). Code (Apache-2.0) and the model weights' licence.
+- [google/timesfm-3.0-pytorch](https://huggingface.co/google/timesfm-3.0-pytorch). The TimesFM 3.0 weights on Hugging Face.
+
 ## Credits
 
 Built by [kannanbalakrishnan576](https://github.com/kannanbalakrishnan576) with
