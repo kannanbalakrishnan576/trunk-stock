@@ -9,7 +9,7 @@
 <meta property="og:title" content="What goes in the trunk">
 <meta property="og:description" content="Six parts can fix it. The trunk fits three. A sample app that ranks the parts to carry with Google's TimesFM 3.0, on synthetic data.">
 <meta property="og:url" content="https://kannanbalakrishnan576.github.io/trunk-stock/">
-<meta property="og:image" content="https://kannanbalakrishnan576.github.io/trunk-stock/docs/og-image.png">
+<meta property="og:image" content="https://kannanbalakrishnan576.github.io/trunk-stock/docs/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="628">
 <meta property="og:image:alt" content="The sample app: a no-heat visit with candidate parts ranked by forecast">
@@ -20,34 +20,41 @@
 <style>
 :root{
   color-scheme:light;
-  --ground:#F2F4F7; --surface:#FFFFFF; --surface-2:#E9ECF1;
-  --ink:#16202B; --ink-2:#3D4A58; --muted:#5C6874;
-  --line:#D5DBE3; --line-2:#C2CAD4; --grid:#E6EAEF;
-  --pick:#2a78d6; --pick-wash:#E3EEFB; --context:#B7C0CB;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
-  --accent:#9A5504;
-  --shadow:0 1px 2px rgba(22,32,43,.05),0 8px 24px -12px rgba(22,32,43,.18);
+  --ground:#F6F3EC; --surface:#FFFFFF; --surface-2:#EFEAE0;
+  --ink:#14213D; --ink-2:#3A4660; --muted:#5F6878;
+  --line:#E2DBCD; --line-2:#CFC5B3; --grid:#ECE6DA;
+  --band:#14213D; --band-2:#1D2E52; --band-ink:#FFFFFF; --band-ink-2:#D5DCEA; --band-muted:#A9B4CB;
+  --van-body:#F6F3EC; --van-glass:#9FB6D6; --van-inside:#E2D8C6; --van-wheel:#0A1222; --van-box:#C9C0AE;
+  --pick:#D4520E; --pick-strong:#B5440A; --pick-text:#FFFFFF; --pick-wash:#FCE9DC; --context:#C9C0AE;
+  --s1:#D4520E; --s2:#2B5C9E; --s3:#138A72;
+  --accent:#2B5C9E;
+  --seg-on:#14213D; --seg-on-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(20,33,61,.05),0 8px 24px -12px rgba(20,33,61,.20);
 }
 @media (prefers-color-scheme:dark){
   :root:where(:not([data-theme="light"])){
     color-scheme:dark;
-    --ground:#121A22; --surface:#1A242E; --surface-2:#222E3A;
-    --ink:#E8ECF1; --ink-2:#BCC6D1; --muted:#8A97A5;
-    --line:#2C3945; --line-2:#3A4956; --grid:#25313C;
-    --pick:#3987e5; --pick-wash:#1B2A3C; --context:#4A5866;
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-    --accent:#E8A33D;
+    --ground:#0E1525; --surface:#17213A; --surface-2:#1F2B47;
+    --ink:#EEF1F6; --ink-2:#C3CBDA; --muted:#8D97AB;
+    --line:#27344F; --line-2:#34425F; --grid:#212D49;
+    --band:#0A1120; --band-2:#16213B; --band-ink:#FFFFFF; --band-ink-2:#D5DCEA; --band-muted:#94A0B8;
+    --van-body:#E9E4DA; --van-glass:#7F99BD; --van-inside:#CFC4B0; --van-wheel:#05080F; --van-box:#9E9686;
+    --pick:#EC6420; --pick-strong:#EC6420; --pick-text:#1A0D05; --pick-wash:#3A2216; --context:#4A5672;
+    --s1:#EC6420; --s2:#4F86D2; --s3:#1C9A7E;
+    --accent:#6F9BDB; --seg-on:#EC6420; --seg-on-ink:#1A0D05;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --ground:#121A22; --surface:#1A242E; --surface-2:#222E3A;
-  --ink:#E8ECF1; --ink-2:#BCC6D1; --muted:#8A97A5;
-  --line:#2C3945; --line-2:#3A4956; --grid:#25313C;
-  --pick:#3987e5; --pick-wash:#1B2A3C; --context:#4A5866;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-  --accent:#E8A33D;
+  --ground:#0E1525; --surface:#17213A; --surface-2:#1F2B47;
+  --ink:#EEF1F6; --ink-2:#C3CBDA; --muted:#8D97AB;
+  --line:#27344F; --line-2:#34425F; --grid:#212D49;
+  --band:#0A1120; --band-2:#16213B; --band-ink:#FFFFFF; --band-ink-2:#D5DCEA; --band-muted:#94A0B8;
+  --van-body:#E9E4DA; --van-glass:#7F99BD; --van-inside:#CFC4B0; --van-wheel:#05080F; --van-box:#9E9686;
+  --pick:#EC6420; --pick-strong:#EC6420; --pick-text:#1A0D05; --pick-wash:#3A2216; --context:#4A5672;
+  --s1:#EC6420; --s2:#4F86D2; --s3:#1C9A7E;
+  --accent:#6F9BDB; --seg-on:#EC6420; --seg-on-ink:#1A0D05;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box}
@@ -59,9 +66,20 @@ p{margin:0}
 .mono,.eyebrow,.k{font-family:"IBM Plex Mono",ui-monospace,monospace}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .shell{max-width:1240px;margin:0 auto;padding:0 16px 72px}
-header{padding:36px 0 22px;border-bottom:2px solid var(--ink)}
-header h1{font-size:clamp(30px,5vw,48px);font-weight:800;letter-spacing:-.025em;line-height:1}
-header .sub{color:var(--ink-2);max-width:70ch;margin-top:12px;font-size:15.5px}
+header{margin-top:20px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:28px;align-items:center;
+  background:radial-gradient(120% 140% at 100% 0%,var(--band-2) 0%,var(--band) 60%);color:var(--band-ink);
+  border-radius:14px;padding:34px 34px 30px;overflow:hidden;position:relative;border:1px solid var(--line)}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;
+  background:repeating-linear-gradient(135deg,var(--pick) 0 14px,var(--band) 14px 28px);opacity:.9}
+header .eyebrow{color:var(--band-muted)}
+header h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.025em;line-height:1;margin-top:8px;color:var(--band-ink)}
+header h1 em{font-style:normal;color:var(--pick)}
+header .sub{color:var(--band-ink-2);max-width:62ch;margin-top:14px;font-size:15.5px}
+header .note{color:var(--band-muted)}
+header .note b{color:var(--band-ink)}
+.van{width:100%;height:auto;display:block}
+@media(max-width:820px){header{grid-template-columns:1fr;padding:24px 20px 26px;gap:12px}
+  .van{max-width:300px;order:-1;margin:0 auto -4px}}
 .note{margin-top:12px;font-size:12.5px;color:var(--muted)}
 .note b{color:var(--ink-2)}
 
@@ -72,7 +90,7 @@ select{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden}
 .seg button{font:inherit;font-size:13.5px;padding:7px 14px;border:0;background:var(--surface);color:var(--ink-2);cursor:pointer}
 .seg button+button{border-left:1px solid var(--line-2)}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.seg button[aria-pressed="true"]{background:var(--seg-on);color:var(--seg-on-ink)}
 select:focus-visible,.seg button:focus-visible,.visit:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
 
 .layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
@@ -113,7 +131,7 @@ td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;t
 .parts .nm{color:var(--ink);font-weight:600}
 .parts .id{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted)}
 .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;font-weight:600;white-space:nowrap}
-.tag.in{background:var(--pick);color:#fff}
+.tag.in{background:var(--pick-strong);color:var(--pick-text)}
 .tag.out{background:var(--surface-2);color:var(--muted)}
 .diff{font-size:12px;color:var(--accent);font-weight:600}
 .tbl-wrap{overflow-x:auto}
@@ -144,15 +162,33 @@ footer a{color:var(--pick)}
 <body>
 <div class="shell">
 <header>
-  <div class="eyebrow">Demo &middot; synthetic data &middot; Google TimesFM 3.0</div>
-  <h1>What goes in the trunk</h1>
-  <p class="sub">The problem code is known at dispatch, and so is the list of parts that can
-  fix it. What is not known is which of them this job will need. This page forecasts the
-  parts mix for every problem code, region and week, and turns it into the
-  three or five parts to carry.</p>
-  <p class="note"><b>Every number is synthetic</b>, generated by
-  <span class="mono">scripts/generate_data.py</span>. Forecasts are TimesFM 3.0 run locally,
-  with temperature and install-base units at risk as known-future covariates.</p>
+  <div>
+    <div class="eyebrow">Sample app &middot; synthetic data &middot; Google TimesFM 3.0</div>
+    <h1>What goes in the <em>trunk</em></h1>
+    <p class="sub">&ldquo;No heat.&rdquo; Six parts can fix it, but the trunk fits three. The problem code
+    is known at dispatch, and so is the list of parts that can fix it. This page forecasts which of them
+    each job will need, and turns that into the three or five parts to carry.</p>
+    <p class="note"><b>Every number is synthetic</b>, generated by
+    <span class="mono">scripts/generate_data.py</span>. Forecasts are TimesFM 3.0 run locally,
+    with temperature and install-base units at risk as known-future covariates.</p>
+  </div>
+  <svg class="van" viewBox="0 0 380 210" role="img" aria-label="A service van with six candidate parts on its shelves. Three are highlighted to carry.">
+    <ellipse cx="192" cy="196" rx="168" ry="7" fill="#000" opacity=".28"/>
+    <rect x="14" y="34" width="250" height="136" rx="12" fill="var(--van-body)"/>
+    <path d="M258 70H316Q330 70 338 82L362 118Q368 126 368 136V160Q368 170 358 170H258Z" fill="var(--van-body)"/>
+    <path d="M272 82H314Q322 82 327 89L346 118H272Z" fill="var(--van-glass)"/>
+    <path d="M264 92V160" stroke="var(--van-wheel)" stroke-opacity=".18" stroke-width="2"/>
+    <rect x="276" y="128" width="16" height="4" rx="2" fill="var(--van-wheel)" opacity=".35"/>
+    <rect x="14" y="140" width="354" height="9" fill="var(--pick)"/>
+    <rect x="355" y="126" width="11" height="8" rx="2" fill="#FFD27A"/>
+    <rect x="30" y="50" width="216" height="78" rx="6" fill="var(--van-inside)"/>
+    <path d="M30 89.5H246" stroke="var(--van-wheel)" stroke-opacity=".3" stroke-width="2"/>
+    <rect x="40" y="58" width="60" height="27" rx="4" fill="var(--pick)"/><path d="M61 72 l6 6 l12 -12" fill="none" stroke="var(--pick-text)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="108" y="58" width="60" height="27" rx="4" fill="var(--van-box)"/><rect x="176" y="58" width="60" height="27" rx="4" fill="var(--pick)"/><path d="M197 72 l6 6 l12 -12" fill="none" stroke="var(--pick-text)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="40" y="96" width="60" height="27" rx="4" fill="var(--van-box)"/><rect x="108" y="96" width="60" height="27" rx="4" fill="var(--pick)"/><path d="M129 110 l6 6 l12 -12" fill="none" stroke="var(--pick-text)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="176" y="96" width="60" height="27" rx="4" fill="var(--van-box)"/>
+    <circle cx="88" cy="170" r="29" fill="var(--band)"/>
+    <circle cx="306" cy="170" r="29" fill="var(--band)"/>
+    <circle cx="88" cy="170" r="23" fill="var(--van-wheel)"/><circle cx="88" cy="170" r="9" fill="var(--van-glass)"/>
+    <circle cx="306" cy="170" r="23" fill="var(--van-wheel)"/><circle cx="306" cy="170" r="9" fill="var(--van-glass)"/>
+  </svg>
 </header>
 
 <div class="controls">
