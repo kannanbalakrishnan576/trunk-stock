@@ -1,0 +1,1 @@
+timesfm[mlx]>=3.0.2   # Apple silicon. Elsewhere: timesfm[torch], and run with --backend torch

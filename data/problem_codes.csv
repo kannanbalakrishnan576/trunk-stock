@@ -1,0 +1,5 @@
+problem_code,name,description
+P01,No cooling,Outdoor unit runs or hums but the house does not cool
+P02,No heat,Gas furnace calls for heat but does not light or stay lit
+P03,Blower not running,"Thermostat calls, indoor blower does not move air"
+P04,Water at indoor unit,Water on the floor or in the pan at the air handler

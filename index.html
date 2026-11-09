@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trunk Stock</title>
+<meta name="description" content="Which parts should the technician carry? A forecast of the parts mix per problem code, using Google TimesFM 3.0, on synthetic data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --ground:#F2F4F7; --surface:#FFFFFF; --surface-2:#E9ECF1;
+  --ink:#16202B; --ink-2:#3D4A58; --muted:#5C6874;
+  --line:#D5DBE3; --line-2:#C2CAD4; --grid:#E6EAEF;
+  --pick:#2a78d6; --pick-wash:#E3EEFB; --context:#B7C0CB;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --accent:#9A5504;
+  --shadow:0 1px 2px rgba(22,32,43,.05),0 8px 24px -12px rgba(22,32,43,.18);
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --ground:#121A22; --surface:#1A242E; --surface-2:#222E3A;
+    --ink:#E8ECF1; --ink-2:#BCC6D1; --muted:#8A97A5;
+    --line:#2C3945; --line-2:#3A4956; --grid:#25313C;
+    --pick:#3987e5; --pick-wash:#1B2A3C; --context:#4A5866;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --accent:#E8A33D;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121A22; --surface:#1A242E; --surface-2:#222E3A;
+  --ink:#E8ECF1; --ink-2:#BCC6D1; --muted:#8A97A5;
+  --line:#2C3945; --line-2:#3A4956; --grid:#25313C;
+  --pick:#3987e5; --pick-wash:#1B2A3C; --context:#4A5866;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --accent:#E8A33D;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14.5px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif;margin:0;letter-spacing:-.01em;text-wrap:balance}
+p{margin:0}
+.mono,.eyebrow,.k{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.shell{max-width:1240px;margin:0 auto;padding:0 16px 72px}
+header{padding:36px 0 22px;border-bottom:2px solid var(--ink)}
+header h1{font-size:clamp(30px,5vw,48px);font-weight:800;letter-spacing:-.025em;line-height:1}
+header .sub{color:var(--ink-2);max-width:70ch;margin-top:12px;font-size:15.5px}
+.note{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.note b{color:var(--ink-2)}
+
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;margin:22px 0 18px}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl label{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+select{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);color:var(--ink);min-width:150px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-size:13.5px;padding:7px 14px;border:0;background:var(--surface);color:var(--ink-2);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+select:focus-visible,.seg button:focus-visible,.visit:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:880px){.layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.parts .rng{min-width:96px!important}.parts td,.parts th{padding:7px 5px}.parts .id{display:none}.panel{padding:16px 14px}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:20px;min-width:0}
+.panel h2{font-size:18px;margin-bottom:4px}
+.panel .lede{color:var(--muted);font-size:13px;margin-bottom:14px}
+
+.visits{display:flex;flex-direction:column;gap:0;margin:0 -8px}
+.visit{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:baseline;
+  text-align:left;font:inherit;border:0;background:none;color:inherit;cursor:pointer;
+  padding:10px 8px;border-radius:6px;border-bottom:1px solid var(--line)}
+.visit:last-child{border-bottom:0}
+.visit:hover{background:var(--surface-2)}
+.visit[aria-current="true"]{background:var(--pick-wash)}
+.visit .t{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted)}
+.visit .p{font-weight:600;font-size:14px}
+.visit .r{font-size:12.5px;color:var(--muted)}
+.visit .c{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+
+.facts{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:16px}
+.fact{background:var(--surface);padding:10px 12px;flex:1 1 120px}
+.fact .k{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.fact .v{font-family:Archivo,sans-serif;font-weight:700;font-size:17px;margin-top:2px}
+.hero{display:flex;gap:28px;flex-wrap:wrap;align-items:baseline;margin:2px 0 14px}
+.hero .big{font-family:Archivo,sans-serif;font-weight:800;font-size:40px;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.hero .lbl{font-size:13px;color:var(--muted);max-width:30ch}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:8px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.parts tr{cursor:pointer}
+.parts tr:hover td{background:var(--surface-2)}
+.parts tr.sel td{background:var(--pick-wash)}
+.parts .nm{color:var(--ink);font-weight:600}
+.parts .id{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted)}
+.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:3px;font-weight:600;white-space:nowrap}
+.tag.in{background:var(--pick);color:#fff}
+.tag.out{background:var(--surface-2);color:var(--muted)}
+.diff{font-size:12px;color:var(--accent);font-weight:600}
+.tbl-wrap{overflow-x:auto}
+
+svg text{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--muted)}
+svg .lbl-ink{fill:var(--ink);font-weight:600}
+.chart{position:relative}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--ground);
+  font-size:12px;line-height:1.45;padding:7px 9px;border-radius:5px;white-space:nowrap;
+  opacity:0;transform:translate(-50%,calc(-100% - 10px));transition:opacity .08s;z-index:2}
+.tip b{font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2);margin:4px 0 8px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.legend i.band{height:10px;opacity:.35}
+.legend i.dash{background:repeating-linear-gradient(90deg,var(--pick) 0 4px,transparent 4px 7px)!important}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+.trunk{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line-2);border-radius:6px;padding:7px 10px;font-size:13px;background:var(--surface)}
+.chip .id{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);display:block}
+.chip .w{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--pick)}
+details summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin-top:10px}
+footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+footer a{color:var(--pick)}
+.err{border:1px solid var(--accent);padding:14px;border-radius:6px;background:var(--surface);margin-top:20px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div class="eyebrow">Demo &middot; synthetic data &middot; Google TimesFM 3.0</div>
+  <h1>What goes in the trunk</h1>
+  <p class="sub">The problem code is known at dispatch, and so is the list of parts that can
+  fix it. What is not known is which of them this job will need. This page forecasts the
+  parts mix for every problem code, region and week, and turns it into the
+  three or five parts to carry.</p>
+  <p class="note"><b>Every number is synthetic</b>, generated by
+  <span class="mono">scripts/generate_data.py</span>. Forecasts are TimesFM 3.0 run locally,
+  with temperature and install-base units at risk as known-future covariates.</p>
+</header>
+
+<div class="controls">
+  <div class="ctl"><label for="date">Day</label><select id="date"></select></div>
+  <div class="ctl"><label for="tech">Technician</label><select id="tech"></select></div>
+  <div class="ctl"><label id="klbl">Parts per visit</label>
+    <div class="seg" role="group" aria-labelledby="klbl">
+      <button type="button" data-k="3" aria-pressed="true">Top 3</button>
+      <button type="button" data-k="5" aria-pressed="false">Top 5</button>
+    </div></div>
+</div>
+
+<div class="layout">
+  <aside class="panel">
+    <h2>The day's visits</h2>
+    <p class="lede">Percentage = share of part-needing jobs the trunk list covers.</p>
+    <div class="visits" id="visits"></div>
+  </aside>
+
+  <main>
+    <section class="panel" id="visitPanel">
+      <div class="facts" id="facts"></div>
+      <div class="hero">
+        <div><div class="big" id="cover">&ndash;</div>
+          <div class="lbl" id="coverLbl">of the jobs that need a part, the part is in the trunk</div></div>
+        <div><div class="big" id="coverAnnual" style="color:var(--muted)">&ndash;</div>
+          <div class="lbl">if the list were set from last year's attach rate, scored against the same forecast</div></div>
+      </div>
+      <h2 style="font-size:15px;margin-bottom:6px">Candidate parts, ranked by forecast</h2>
+      <div class="tbl-wrap"><table class="parts">
+        <thead><tr><th>#</th><th>Part</th><th>Trunk</th><th class="rng" style="min-width:180px">P(job needs it) &middot; 80% range</th><th class="num">Annual rate</th></tr></thead>
+        <tbody id="partRows"></tbody>
+      </table></div>
+      <p class="note">Click a part to chart it. The range is TimesFM's 10th to 90th percentile.</p>
+    </section>
+
+    <section class="panel">
+      <h2 id="histTitle">Attach rate over time</h2>
+      <p class="lede" id="histLede"></p>
+      <div class="legend" id="histLegend"></div>
+      <div class="chart" id="histChart"></div>
+      <h3 style="font-size:13px;margin:14px 0 2px;color:var(--ink-2)">Average temperature, &deg;F</h3>
+      <div class="chart" id="tempChart"></div>
+    </section>
+
+    <section class="panel">
+      <h2 id="dayTitle">The day's trunk</h2>
+      <p class="lede" id="dayLede"></p>
+      <div class="trunk" id="dayTrunk"></div>
+    </section>
+  </main>
+</div>
+
+<section class="panel">
+  <h2>Backtest: did the trunk have the part?</h2>
+  <p class="lede">Rolling, 26 weeks (11 May &ndash; 2 Nov 2026). Each week, every method sees only
+  the weeks before it and picks next week's list. Score: share of part-needing jobs whose part was in the trunk.</p>
+  <div class="grid2">
+    <div>
+      <div class="controls" style="margin:0 0 8px"><div class="ctl"><label for="cellSel">Region and problem</label><select id="cellSel"></select></div></div>
+      <h3 style="font-size:14px" id="btTitle"></h3>
+      <div class="legend" id="btLegend"></div>
+      <div class="chart" id="btChart"></div>
+      <p class="note">Top 3 carried. Each point pools four weeks, so a week with eight jobs does not swing the line. Where a line seems to vanish, it is under another: the two methods picked the same parts.</p>
+      <h3 style="font-size:14px;margin:18px 0 8px">All regions and problems, by parts carried</h3>
+      <div class="tbl-wrap"><table id="btTable"></table></div>
+    </div>
+    <div>
+      <h3 style="font-size:14px;margin-bottom:8px">Top 3, by region and problem</h3>
+      <div class="tbl-wrap"><table id="cellTable"></table></div>
+      <p class="note" id="calib"></p>
+    </div>
+  </div>
+</section>
+
+<footer>Trunk Stock &middot; code Apache-2.0 &middot; TimesFM 3.0 weights are under Google's
+non-commercial licence; for production the same model runs in BigQuery <span class="mono">AI.FORECAST</span>.
+See <span class="mono">README.md</span>.</footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const pct = (x, d = 0) => (100 * x).toFixed(d) + "%";
+const NS = "http://www.w3.org/2000/svg";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function csv(name) {
+  const r = await fetch("data/" + name);
+  if (!r.ok) throw new Error(name + ": " + r.status);
+  const [head, ...lines] = (await r.text()).trim().split(/\r?\n/);
+  const keys = head.split(",");
+  return lines.map(l => { const v = l.split(","); return Object.fromEntries(keys.map((k, i) => [k, v[i]])); });
+}
+
+const S = { k: 3, visit: null, part: null };
+let D;
+
+function monday(iso) {
+  const d = new Date(iso + "T00:00:00Z"); const dow = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dow); return d.toISOString().slice(0, 10);
+}
+const fmtDay = iso => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const fmtWeek = iso => new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit", timeZone: "UTC" });
+
+async function init() {
+  const [parts, probs, cands, jobs, uses, weather, visits, fc, bt, cells, calib, btw] = await Promise.all(
+    ["parts.csv", "problem_codes.csv", "problem_parts.csv", "jobs_weekly.csv", "part_usage_weekly.csv",
+     "weather_weekly.csv", "visits.csv", "forecast.csv", "backtest.csv", "backtest_cells.csv", "calibration.csv", "backtest_weekly.csv"].map(csv));
+  D = { parts: {}, probs: {}, cands: {}, jobs: {}, uses: {}, temp: {}, fc: {}, visits, bt, cells, calib, btw };
+  parts.forEach(p => D.parts[p.part_id] = p);
+  probs.forEach(p => D.probs[p.problem_code] = p);
+  cands.forEach(c => (D.cands[c.problem_code] ||= []).push(c.part_id));
+  jobs.forEach(j => D.jobs[j.week + j.region + j.problem_code] = +j.jobs);
+  uses.forEach(u => D.uses[u.week + u.region + u.problem_code + u.part_id] = +u.uses);
+  weather.forEach(w => (D.temp[w.region] ||= []).push({ week: w.week, t: +w.avg_temp_f, kind: w.kind }));
+  fc.filter(r => r.run === "production").forEach(r =>
+    ((D.fc[r.week + r.region + r.problem_code] ||= {})[r.series] = { lo: +r.p10, mid: +r.p50, hi: +r.p90 }));
+  D.weeks = [...new Set(jobs.map(j => j.week))].sort();
+  D.fweeks = [...new Set(fc.filter(r => r.run === "production").map(r => r.week))].sort();
+
+  const dates = [...new Set(visits.map(v => v.date))].sort();
+  $("date").innerHTML = dates.map(d => `<option value="${d}">${fmtDay(d)}</option>`).join("");
+  const techs = [...new Set(visits.map(v => v.tech_id))].sort();
+  $("tech").innerHTML = techs.map(t => {
+    const r = visits.find(v => v.tech_id === t).region;
+    return `<option value="${t}">${t} &middot; ${r}</option>`;
+  }).join("");
+  $("tech").value = "T-201";
+  $("date").onchange = $("tech").onchange = () => { S.visit = null; render(); };
+  document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+    S.k = +b.dataset.k;
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    render();
+  });
+  renderBacktest();
+  render();
+}
+
+/* rolling 4-week attach rate, history */
+function rate(region, problem, part, i) {
+  let j = 0, u = 0;
+  for (let x = Math.max(0, i - 3); x <= i; x++) {
+    const w = D.weeks[x]; j += D.jobs[w + region + problem] || 0; u += D.uses[w + region + problem + part] || 0;
+  }
+  return j ? u / j : 0;
+}
+function annual(region, problem) {
+  const ws = D.weeks.slice(-52); let j = 0; const out = {};
+  ws.forEach(w => j += D.jobs[w + region + problem] || 0);
+  D.cands[problem].forEach(p => { let u = 0; ws.forEach(w => u += D.uses[w + region + problem + p] || 0); out[p] = u / (j || 1); });
+  return out;
+}
+function plan(v) {
+  const f = D.fc[monday(v.date) + v.region + v.problem_code];
+  const ranked = D.cands[v.problem_code].map(p => ({ p, ...f[p] })).sort((a, b) => b.mid - a.mid);
+  const total = ranked.reduce((s, r) => s + r.mid, 0) || 1;
+  const pick = ranked.slice(0, S.k);
+  const an = annual(v.region, v.problem_code);
+  const anPick = Object.keys(an).sort((a, b) => an[b] - an[a]).slice(0, S.k);
+  return { ranked, pick, cover: pick.reduce((s, r) => s + r.mid, 0) / total,
+    an, anPick, anCover: anPick.reduce((s, p) => s + f[p].mid, 0) / total };
+}
+
+function render() {
+  const vs = D.visits.filter(v => v.date === $("date").value && v.tech_id === $("tech").value);
+  if (!S.visit || !vs.includes(S.visit)) S.visit = vs[0];
+  $("visits").innerHTML = vs.map((v, i) => {
+    const pl = plan(v);
+    return `<button class="visit" data-i="${i}" aria-current="${v === S.visit}">
+      <span class="t">${v.window_start}</span>
+      <span><span class="p">${esc(D.probs[v.problem_code].name)}</span><br><span class="r">${v.visit_id} &middot; unit age ${v.asset_age_years} yr</span></span>
+      <span class="c">${pct(pl.cover)}</span></button>`;
+  }).join("");
+  document.querySelectorAll(".visit").forEach(b => b.onclick = () => { S.visit = vs[+b.dataset.i]; S.part = null; render(); });
+  renderVisit(S.visit);
+  renderDay(vs);
+}
+
+function renderVisit(v) {
+  const pl = plan(v), pr = D.probs[v.problem_code];
+  if (!S.part || !D.cands[v.problem_code].includes(S.part)) {
+    const changed = pl.pick.find(r => !pl.anPick.includes(r.p));   // open on what last year's list missed
+    S.part = (changed || pl.ranked[0]).p;
+  }
+  $("facts").innerHTML = [
+    ["Visit", v.visit_id], ["When", fmtDay(v.date) + " " + v.window_start], ["Region", v.region],
+    ["Problem", v.problem_code + " " + pr.name], ["Unit age", v.asset_age_years + " years"]
+  ].map(([k, x]) => `<div class="fact"><div class="k">${k}</div><div class="v">${esc(x)}</div></div>`).join("");
+  $("cover").textContent = pct(pl.cover);
+  $("coverAnnual").textContent = pct(pl.anCover);
+  $("coverLbl").textContent = `of the jobs that need a part, the part is in the trunk (top ${S.k}, forecast)`;
+  const max = Math.max(...pl.ranked.map(r => r.hi), 0.05);
+  $("partRows").innerHTML = pl.ranked.map((r, i) => {
+    const inT = i < S.k, inA = pl.anPick.includes(r.p);
+    const diff = inT && !inA ? `<div class="diff">not in last year's list</div>` : (!inT && inA ? `<div class="diff">was in last year's list</div>` : "");
+    return `<tr data-p="${r.p}" class="${r.p === S.part ? "sel" : ""}">
+      <td class="num">${i + 1}</td>
+      <td><div class="nm">${esc(D.parts[r.p].name)}</div><div class="id">${r.p} &middot; $${D.parts[r.p].unit_cost_usd} &middot; ${D.parts[r.p].trunk_slots} slot</div>${diff}</td>
+      <td><span class="tag ${inT ? "in" : "out"}">${inT ? "carry" : "leave"}</span></td>
+      <td>${rangeBar(r, max, inT)}</td>
+      <td class="num">${pct(pl.an[r.p])}</td></tr>`;
+  }).join("");
+  document.querySelectorAll(".parts tbody tr").forEach(tr => tr.onclick = () => { S.part = tr.dataset.p; renderVisit(v); });
+  renderHistory(v);
+}
+
+function rangeBar(r, max, inT) {
+  const W = 200, x = v => 4 + (W - 52) * v / max;
+  const col = inT ? "var(--pick)" : "var(--context)";
+  return `<svg viewBox="0 0 ${W} 22" width="100%" style="max-width:${W}px;display:block" role="img" aria-label="${pct(r.mid)}, range ${pct(r.lo)} to ${pct(r.hi)}">
+    <line x1="${x(r.lo)}" x2="${x(r.hi)}" y1="11" y2="11" stroke="${col}" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+    <rect x="4" y="5" width="${Math.max(2, x(r.mid) - 4)}" height="12" rx="3" fill="${col}"/>
+    <text x="${W - 46}" y="15" class="lbl-ink">${pct(r.mid)}</text></svg>`;
+}
+
+/* ---------- line chart helpers ---------- */
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function axes(svg, W, H, m, xs, ys, yTicks, fmtY, xTicks) {
+  yTicks.forEach(t => {
+    svgEl("line", { x1: m.l, x2: W - m.r, y1: ys(t), y2: ys(t), stroke: "var(--grid)" }, svg);
+    svgEl("text", { x: m.l - 8, y: ys(t) + 4, "text-anchor": "end" }, svg).textContent = fmtY(t);
+  });
+  xTicks.forEach(([i, lab]) => svgEl("text", { x: xs(i), y: H - 6, "text-anchor": "middle" }, svg).textContent = lab);
+}
+function hover(box, svg, W, m, H, n, xs, onIdx) {
+  const tip = document.createElement("div"); tip.className = "tip"; box.appendChild(tip);
+  const cross = svgEl("line", { y1: m.t, y2: H - m.b, stroke: "var(--muted)", "stroke-dasharray": "2 3", opacity: 0 }, svg);
+  const hit = svgEl("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" }, svg);
+  const move = ev => {
+    const pt = svg.getBoundingClientRect(); const sx = (ev.clientX - pt.left) * W / pt.width;
+    let i = Math.round((sx - m.l) / (W - m.l - m.r) * (n - 1)); i = Math.max(0, Math.min(n - 1, i));
+    cross.setAttribute("x1", xs(i)); cross.setAttribute("x2", xs(i)); cross.setAttribute("opacity", 1);
+    tip.innerHTML = onIdx(i); tip.style.opacity = 1;
+    tip.style.left = Math.min(Math.max(xs(i) * pt.width / W, 90), pt.width - 90) + "px"; tip.style.top = (m.t * pt.height / svg.viewBox.baseVal.height) + "px";
+  };
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", () => { tip.style.opacity = 0; cross.setAttribute("opacity", 0); });
+}
+const path = pts => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
+
+function renderHistory(v) {
+  const box = $("histChart"); box.innerHTML = "";
+  const tbox = $("tempChart"); tbox.innerHTML = "";
+  const region = v.region, problem = v.problem_code, parts = D.cands[problem];
+  const nh = D.weeks.length, all = D.weeks.concat(D.fweeks), n = all.length;
+  const hist = {}; parts.forEach(p => hist[p] = D.weeks.map((_, i) => rate(region, problem, p, i)));
+  const fut = D.fweeks.map(w => D.fc[w + region + problem][S.part]);
+  const W = 860, H = 260, m = { l: 44, r: 16, t: 14, b: 26 };
+  const ymax = Math.min(1, Math.ceil(Math.max(...parts.flatMap(p => hist[p]), ...fut.map(f => f.hi)) * 10 + 0.5) / 10);
+  const xs = i => m.l + (W - m.l - m.r) * i / (n - 1), ys = y => H - m.b - (H - m.t - m.b) * y / ymax;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img",
+    "aria-label": `Attach rate of ${D.parts[S.part].name} for ${problem} in ${region}, history and forecast` }, box);
+  const xt = []; all.forEach((w, i) => { if (w.slice(5, 7) === "01" && +w.slice(8) <= 7) xt.push([i, w.slice(0, 4)]); });
+  const yt = []; for (let t = 0; t <= ymax + 1e-9; t += ymax > 0.5 ? 0.2 : 0.1) yt.push(+t.toFixed(2));
+  axes(svg, W, H, m, xs, ys, yt, t => pct(t), xt);
+  svgEl("rect", { x: xs(nh - 0.5), y: m.t, width: xs(n - 1) - xs(nh - 0.5), height: H - m.t - m.b, fill: "var(--surface-2)", opacity: .6 }, svg);
+  svgEl("text", { x: xs(nh) + 4, y: m.t + 12 }, svg).textContent = "forecast";
+  parts.filter(p => p !== S.part).forEach(p =>
+    svgEl("path", { d: path(hist[p].map((y, i) => [xs(i), ys(y)])), fill: "none", stroke: "var(--context)", "stroke-width": 1.25, opacity: .8 }, svg));
+  const band = fut.map((f, i) => [xs(nh + i), ys(f.hi)]).concat(fut.map((f, i) => [xs(nh + i), ys(f.lo)]).reverse());
+  svgEl("path", { d: path(band) + "Z", fill: "var(--pick)", opacity: .18 }, svg);
+  svgEl("path", { d: path(hist[S.part].map((y, i) => [xs(i), ys(y)])), fill: "none", stroke: "var(--pick)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+  svgEl("path", { d: path([[xs(nh - 1), ys(hist[S.part][nh - 1])], ...fut.map((f, i) => [xs(nh + i), ys(f.mid)])]), fill: "none", stroke: "var(--pick)", "stroke-width": 2, "stroke-dasharray": "5 4" }, svg);
+  const an = annual(region, problem)[S.part];
+  svgEl("line", { x1: xs(nh - 52), x2: xs(n - 1), y1: ys(an), y2: ys(an), stroke: "var(--accent)", "stroke-width": 1.5, "stroke-dasharray": "1 3", "stroke-linecap": "round" }, svg);
+  svgEl("text", { x: xs(nh - 1) - 4, y: ys(an) - 6, "text-anchor": "end", fill: "var(--accent)", "paint-order": "stroke", stroke: "var(--surface)", "stroke-width": 3 }, svg).textContent = "last 52 weeks: " + pct(an);
+  hover(box, svg, W, m, H, n, xs, i => {
+    if (i < nh) return `<b>${fmtWeek(all[i])}</b><br>${S.part}: ${pct(hist[S.part][i], 1)} <span style="opacity:.7">(4-wk rate)</span>`;
+    const f = fut[i - nh]; return `<b>${fmtWeek(all[i])}</b> forecast<br>${S.part}: ${pct(f.mid, 1)} &nbsp;<span style="opacity:.7">80%: ${pct(f.lo)}&ndash;${pct(f.hi)}</span>`;
+  });
+  $("histTitle").textContent = `${D.parts[S.part].name}: share of ${D.probs[problem].name.toLowerCase()} jobs that used it`;
+  $("histLede").textContent = `${region}. Solid: rolling 4-week attach rate. Dashed and shaded: TimesFM forecast with its 80% range. Grey lines: the other candidate parts for this problem code.`;
+  $("histLegend").innerHTML = `<span><i style="background:var(--pick)"></i>${S.part} history</span><span><i class="dash"></i>forecast</span><span><i class="band" style="background:var(--pick)"></i>80% range</span><span><i style="background:var(--context)"></i>other candidates</span><span><i style="background:var(--accent)"></i>last year's attach rate</span>`;
+
+  const T = D.temp[region], TH = 90, tm = { l: 44, r: 16, t: 8, b: 20 };
+  const tmin = Math.floor(Math.min(...T.map(x => x.t)) / 10) * 10, tmax = Math.ceil(Math.max(...T.map(x => x.t)) / 10) * 10;
+  const txs = i => tm.l + (W - tm.l - tm.r) * i / (T.length - 1), tys = y => TH - tm.b - (TH - tm.t - tm.b) * (y - tmin) / (tmax - tmin);
+  const ts = svgEl("svg", { viewBox: `0 0 ${W} ${TH}`, width: "100%", role: "img", "aria-label": `Weekly average temperature in ${region}` }, tbox);
+  axes(ts, W, TH, tm, txs, tys, [tmin, tmax], t => t + "°", []);
+  svgEl("path", { d: path(T.slice(0, nh).map((x, i) => [txs(i), tys(x.t)])), fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5 }, ts);
+  svgEl("path", { d: path(T.slice(nh - 1).map((x, i) => [txs(nh - 1 + i), tys(x.t)])), fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, ts);
+  hover(tbox, ts, W, tm, TH, T.length, txs, i => `<b>${fmtWeek(T[i].week)}</b><br>${T[i].t.toFixed(0)}°F ${T[i].kind === "forecast" ? "(forecast)" : ""}`);
+}
+
+function renderDay(vs) {
+  const need = {};
+  vs.forEach(v => plan(v).pick.forEach(r => (need[r.p] ||= []).push(v.visit_id)));
+  const ids = Object.keys(need).sort((a, b) => need[b].length - need[a].length);
+  const slots = ids.reduce((s, p) => s + +D.parts[p].trunk_slots, 0);
+  const naive = vs.length * S.k;
+  $("dayTitle").textContent = `${$("tech").value}'s trunk for ${fmtDay($("date").value)}`;
+  $("dayLede").textContent = `${vs.length} visits × top ${S.k} = ${naive} picks, but ${ids.length} distinct parts (${slots} trunk slots). One part on the shelf covers every visit that wants it.`;
+  $("dayTrunk").innerHTML = ids.map(p => `<div class="chip"><span class="id">${p}</span>${esc(D.parts[p].name)}<br><span class="w">for ${need[p].join(", ")}</span></div>`).join("");
+}
+
+function renderBacktest() {
+  const methods = [["annual", "Last year's attach rate", "var(--s2)"], ["recent", "Last 8 weeks' attach rate", "var(--s3)"], ["timesfm", "TimesFM 3.0 forecast", "var(--s1)"]];
+  const get = (m, k) => +D.bt.find(r => r.method === m && +r.k === k).coverage;
+  const ks = [1, 2, 3, 4, 5, 6];
+  const cellsList = [...new Set(D.cells.map(c => c.region + "|" + c.problem_code))];
+  $("cellSel").innerHTML = cellsList.map(c => { const [r, p] = c.split("|"); return `<option value="${c}">${r} · ${esc(D.probs[p].name)}</option>`; }).join("");
+  $("cellSel").value = "Lakes|P02";
+  const drawCell = () => {
+    const [r, p] = $("cellSel").value.split("|");
+    const rows = D.btw.filter(x => x.region === r && x.problem_code === p);
+    const weeks = [...new Set(rows.map(x => x.week))].sort();
+    const series = methods.map(([mk]) => weeks.map((w, i) => {
+      let c = 0, n = 0;
+      weeks.slice(Math.max(0, i - 3), i + 1).forEach(x => { const o = rows.find(y => y.method === mk && y.week === x); c += +o.covered; n += +o.part_jobs; });
+      return n ? c / n : null;
+    }));
+    const box = $("btChart"); box.innerHTML = "";
+    const W = 560, H = 250, m = { l: 44, r: 16, t: 14, b: 26 };
+    const lo = Math.max(0, Math.floor(Math.min(...series.flat().filter(v => v != null)) * 10) / 10);
+    const xs = i => m.l + (W - m.l - m.r) * i / (weeks.length - 1), ys = y => H - m.b - (H - m.t - m.b) * (y - lo) / (1 - lo);
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": `Backtest coverage week by week for ${r} ${p}, three methods` }, box);
+    const yt = []; for (let t = lo; t <= 1.0001; t += 0.1) yt.push(+t.toFixed(1));
+    const xt = []; weeks.forEach((w, i) => { if (+w.slice(8) <= 7) xt.push([i, fmtWeek(w).split(" ")[1]]); });
+    axes(svg, W, H, m, xs, ys, yt, t => pct(t), xt);
+    methods.forEach(([mk, , col], j) => {
+      svgEl("path", { d: path(series[j].map((v, i) => [xs(i), ys(v)])), fill: "none", stroke: col, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+    });
+    hover(box, svg, W, m, H, weeks.length, xs, i => `<b>4 weeks to ${fmtWeek(weeks[i])}</b><br>` + methods.map(([, lab], j) => `${lab}: ${pct(series[j][i])}`).join("<br>"));
+    $("btTitle").textContent = `${r} · ${D.probs[p].name}: share of part-needing jobs with the part on board`;
+  };
+  $("cellSel").onchange = drawCell;
+  drawCell();
+  $("btLegend").innerHTML = methods.map(([, lab, col]) => `<span><i style="background:${col}"></i>${lab}</span>`).join("");
+  $("btTable").innerHTML = `<tr><th>Parts carried</th><th class="num">Annual</th><th class="num">8 wk</th><th class="num">TimesFM</th></tr>` +
+    ks.map(k => `<tr><td>${k}</td>${methods.map(([mk]) => `<td class="num">${pct(get(mk, k), 1)}</td>`).join("")}</tr>`).join("");
+  const cell = (mk, r, p) => +D.cells.find(c => c.method === mk && c.region === r && c.problem_code === p).coverage_k3;
+  const rows = [...new Set(D.cells.map(c => c.region + "|" + c.problem_code))].map(s => s.split("|"));
+  $("cellTable").innerHTML = `<tr><th>Region</th><th>Problem</th><th class="num">Annual</th><th class="num">8 wk</th><th class="num">TimesFM</th></tr>` +
+    rows.map(([r, p]) => { const a = cell("annual", r, p), t = cell("timesfm", r, p), rc = cell("recent", r, p);
+      const hi = Math.abs(t - a) >= 0.05 || Math.abs(rc - a) >= 0.05;
+      return `<tr style="${hi ? "font-weight:600;color:var(--ink)" : ""}"><td>${r}</td><td>${esc(D.probs[p].name)}</td><td class="num">${pct(a)}</td><td class="num">${pct(rc)}</td><td class="num">${pct(t)}</td></tr>`; }).join("");
+  const c = D.calib[0];
+  $("calib").innerHTML = `TimesFM's 80% range contained the actual 4-week attach rate <b>${pct(+c.share)}</b> of the time (${c.inside} of ${c.total} part-weeks). Rows in bold: the methods differ by five points or more.`;
+}
+
+init().catch(e => {
+  document.querySelector(".layout").insertAdjacentHTML("beforebegin",
+    `<div class="err"><b>Could not load data/.</b> Serve the folder over HTTP rather than opening the file directly:<br><span class="mono">python3 -m http.server 8000</span> then open <span class="mono">http://localhost:8000</span>.<br><span class="mono">${esc(e.message)}</span></div>`);
+});
+</script>
+</body>
+</html>

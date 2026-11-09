@@ -1,0 +1,21 @@
+part_id,name,unit_cost_usd,trunk_slots
+CAP-45-5,Dual run capacitor 45/5 uF,14,1
+CON-30A,Contactor 30A 24V,19,1
+FM-1/4HP,Condenser fan motor 1/4 hp,128,3
+HSK-01,Compressor hard-start kit,42,1
+R410-25,Refrigerant R-410A 25 lb,210,4
+TXV-3T,TXV 3-ton,96,1
+IGN-HSI,Hot surface igniter,34,1
+FS-01,Flame sensor,12,1
+IND-MTR,Inducer motor assembly,185,3
+PS-0.55,Pressure switch 0.55 in. wc,28,1
+CB-50A,Furnace control board,165,2
+GV-24V,Gas valve 24V,140,2
+BM-1/2HP,Blower motor 1/2 hp PSC,155,4
+CAP-10,Blower capacitor 10 uF,9,1
+ECM-MOD,ECM motor module,260,2
+BLR-RLY,Fan relay 24V,16,1
+CP-120,Condensate pump 120V,72,2
+FLT-SW,Float safety switch,18,1
+DRN-KIT,Drain line and trap kit,15,2
+EVAP-PAN,Secondary drain pan,38,3
