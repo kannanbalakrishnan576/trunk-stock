@@ -80,6 +80,22 @@ header .note b{color:var(--band-ink)}
 .van{width:100%;height:auto;display:block}
 @media(max-width:820px){header{grid-template-columns:1fr;padding:24px 20px 26px;gap:12px}
   .van{max-width:300px;order:-1;margin:0 auto -4px}}
+.how{display:flex;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:12px 16px 12px 12px;margin:16px 0 0;box-shadow:var(--shadow)}
+.how .thumb{padding:0;border:1px solid var(--line);background:none;cursor:zoom-in;border-radius:8px;overflow:hidden;flex:none;position:relative}
+.how .thumb img{width:120px;height:120px;display:block}
+.how .thumb span{position:absolute;right:6px;bottom:6px;background:rgba(10,17,32,.78);color:#fff;font-size:11px;
+  font-family:"IBM Plex Mono",monospace;padding:2px 6px;border-radius:4px}
+.how .thumb:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+.how h2{font-size:16px}
+.how p{font-size:13.5px;color:var(--ink-2);margin-top:4px;max-width:62ch}
+dialog.zoom{padding:0;border:0;background:transparent;max-width:min(94vw,94vh);width:min(94vw,94vh);overflow:visible}
+dialog.zoom::backdrop{background:rgba(8,12,24,.82)}
+dialog.zoom img{width:100%;height:auto;display:block;border-radius:12px;cursor:zoom-out}
+dialog.zoom .x{position:absolute;top:-14px;right:-14px;width:34px;height:34px;border-radius:50%;border:0;
+  background:#fff;color:#14213D;font-size:20px;line-height:34px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+dialog.zoom .full{display:block;text-align:center;margin-top:10px;color:#fff;font-size:14px;text-decoration:underline}
+@media(max-width:560px){.how{align-items:flex-start}.how .thumb img{width:88px;height:88px}dialog.zoom .x{top:6px;right:6px}}
 .note{margin-top:12px;font-size:12.5px;color:var(--muted)}
 .note b{color:var(--ink-2)}
 
@@ -190,6 +206,23 @@ footer a{color:var(--pick)}
     <circle cx="306" cy="170" r="23" fill="var(--van-wheel)"/><circle cx="306" cy="170" r="9" fill="var(--van-glass)"/>
   </svg>
 </header>
+
+<section class="how" aria-labelledby="howTitle">
+  <button type="button" class="thumb" id="howOpen" aria-label="Enlarge the how-it-works diagram">
+    <img src="docs/post-image.png" alt="How it works: history, conditions and candidate parts go into TimesFM 3.0, which ranks the parts for visit V0008" width="120" height="120">
+    <span>zoom</span>
+  </button>
+  <div>
+    <h2 id="howTitle">How it works</h2>
+    <p>Three inputs go in: parts used per problem code each week, the conditions (weather, installed equipment age),
+    and the candidate parts. TimesFM&nbsp;3.0 forecasts each part's share of jobs, and the top three or five go in the trunk.</p>
+  </div>
+</section>
+<dialog class="zoom" id="howZoom" aria-label="How it works, enlarged">
+  <img src="docs/post-image.png" alt="How it works: history, conditions and candidate parts go into TimesFM 3.0, which ranks the parts for visit V0008: igniter 34%, control board 26%, flame sensor 15%, pressure switch 9%, inducer motor 5%, gas valve 4%. The top three are carried.">
+  <button type="button" class="x" aria-label="Close">&times;</button>
+  <a class="full" href="docs/post-image.png" target="_blank" rel="noopener">Open full size &#8599;</a>
+</dialog>
 
 <div class="controls">
   <div class="ctl"><label for="date">Day</label><select id="date"></select></div>
@@ -535,6 +568,11 @@ function renderBacktest() {
   $("calib").innerHTML = `TimesFM's 80% range contained the actual 4-week attach rate <b>${pct(+c.share)}</b> of the time (${c.inside} of ${c.total} part-weeks). Rows in bold: the methods differ by five points or more.`;
 }
 
+(() => {
+  const d = document.getElementById("howZoom");
+  document.getElementById("howOpen").addEventListener("click", () => d.showModal());
+  d.addEventListener("click", () => d.close());
+})();
 init().catch(e => {
   document.querySelector(".layout").insertAdjacentHTML("beforebegin",
     `<div class="err"><b>Could not load data/.</b> Serve the folder over HTTP rather than opening the file directly:<br><span class="mono">python3 -m http.server 8000</span> then open <span class="mono">http://localhost:8000</span>.<br><span class="mono">${esc(e.message)}</span></div>`);
